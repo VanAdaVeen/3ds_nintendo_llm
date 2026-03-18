@@ -1,5 +1,7 @@
 /build
 /datas
+/venv
+/.vscode
 
 test_tokenizer
 
