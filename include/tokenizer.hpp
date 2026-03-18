@@ -52,5 +52,5 @@ public:
 private:
     // NOUVEAU : Méthode interne ultra-rapide pour trouver si une fusion existe
     // Retourne le result_id si trouvé, sinon UINT32_MAX
-    uint32_t findMerge(uint32_t left_id, uint32_t right_id) const; 
+    const MergeRule* findMerge(uint32_t left_id, uint32_t right_id) const;
 };

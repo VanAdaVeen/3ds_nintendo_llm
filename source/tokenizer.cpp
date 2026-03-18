@@ -1,4 +1,5 @@
 #include "tokenizer.hpp"
+#include "gpt2_byte_map.hpp"
 
 // Fonction de recherche dichotomique (Binary Search) ultra-rapide
 const MergeRule* TokenizerData::findMerge(uint32_t left_id, uint32_t right_id) const {
@@ -41,7 +42,8 @@ std::vector<uint32_t> TokenizerData::tokenize(const std::string& text) const {
     // On suppose ici que le vocabulaire généré par le script Python 
     // a assigné les IDs 0 à 255 aux 256 valeurs d'octets possibles.
     for (char c : text) {
-        tokens.push_back(static_cast<uint8_t>(c));
+        uint8_t byte_val = static_cast<uint8_t>(c);
+        tokens.push_back(gpt2_byte_to_id[byte_val]);
     }
 
     // 2. Boucle principale du BPE
