@@ -1,5 +1,6 @@
 #include "tokenizer.hpp"
 #include "embedding.hpp"
+#include "layernorm.hpp"
 
 #include <iostream>
 #include <string>
@@ -40,9 +41,35 @@ static void test_embedding(const EmbeddingLayer& emb, uint32_t token_id, uint32_
     std::cout << "] (dim=" << hidden_size << ")\n";
 }
 
+static void test_layernorm(const LayerNorm& ln, const std::vector<float>& input) {
+    uint32_t dim = ln.getHiddenSize();
+    std::vector<float> x(input.begin(), input.end());
+
+    std::cout << "LayerNorm forward (dim=" << dim << ")\n";
+    std::cout << "  Avant  : [";
+    uint32_t preview = (dim < 8) ? dim : 8;
+    for (uint32_t i = 0; i < preview; ++i) {
+        if (i > 0) std::cout << ", ";
+        std::cout << x[i];
+    }
+    if (dim > preview) std::cout << ", ...";
+    std::cout << "]\n";
+
+    ln.forward(x.data());
+
+    std::cout << "  Apres  : [";
+    for (uint32_t i = 0; i < preview; ++i) {
+        if (i > 0) std::cout << ", ";
+        std::cout << x[i];
+    }
+    if (dim > preview) std::cout << ", ...";
+    std::cout << "]\n\n";
+}
+
 int main(int argc, char* argv[]) {
     const char* tok_path = (argc > 1) ? argv[1] : "tokenizer.bin";
     const char* emb_path = (argc > 2) ? argv[2] : "embeddings.bin";
+    const char* ln_path  = (argc > 3) ? argv[3] : "layernorm.bin";
 
     // --- Test Tokenizer ---
     std::cout << "=== TEST TOKENIZER ===\n\n";
@@ -83,6 +110,43 @@ int main(int argc, char* argv[]) {
     test_embedding(emb, 0, 0);
     test_embedding(emb, 1, 1);
     test_embedding(emb, 50256, 0); // OOV / token limite
+
+    // --- Test LayerNorm ---
+    std::cout << "=== TEST LAYERNORM ===\n\n";
+    LayerNorm ln;
+    if (!ln.load(ln_path)) {
+        std::cerr << "Erreur: impossible de charger " << ln_path << "\n";
+        return 1;
+    }
+
+    uint32_t hidden_size = ln.getHiddenSize();
+    std::cout << "hidden_size = " << hidden_size << "\n\n";
+
+    // Test 1 : vecteur nul (cas limite)
+    {
+        std::vector<float> zeros(hidden_size, 0.0f);
+        std::cout << "Test vecteur nul :\n";
+        test_layernorm(ln, zeros);
+    }
+
+    // Test 2 : vecteur constant (variance=0, cas numeriquement delicat)
+    {
+        std::vector<float> constant(hidden_size, 3.14f);
+        std::cout << "Test vecteur constant :\n";
+        test_layernorm(ln, constant);
+    }
+
+    // Test 3 : sortie embedding du premier token de "Hello, world!"
+    {
+        const std::vector<uint32_t> ids2 = tokenizer.tokenize("Hello, world!");
+        if (!ids2.empty()) {
+            std::vector<float> emb_out(hidden_size);
+            if (emb.forward(ids2[0], 0, emb_out.data())) {
+                std::cout << "Test sur embedding(token=" << ids2[0] << ", pos=0) :\n";
+                test_layernorm(ln, emb_out);
+            }
+        }
+    }
 
     return 0;
 }

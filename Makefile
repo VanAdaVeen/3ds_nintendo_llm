@@ -8,8 +8,8 @@ SRC_DIR := source
 INC_DIR := include
 BUILD_DIR := build
 
-SRCS := $(SRC_DIR)/main.cpp $(SRC_DIR)/tokenizer_loader.cpp $(SRC_DIR)/tokenizer.cpp $(SRC_DIR)/embedding.cpp
-OBJS := $(BUILD_DIR)/main.o $(BUILD_DIR)/tokenizer_loader.o $(BUILD_DIR)/tokenizer.o $(BUILD_DIR)/embedding.o
+SRCS := $(SRC_DIR)/main.cpp $(SRC_DIR)/tokenizer_loader.cpp $(SRC_DIR)/tokenizer.cpp $(SRC_DIR)/embedding.cpp $(SRC_DIR)/layernorm.cpp
+OBJS := $(BUILD_DIR)/main.o $(BUILD_DIR)/tokenizer_loader.o $(BUILD_DIR)/tokenizer.o $(BUILD_DIR)/embedding.o $(BUILD_DIR)/layernorm.o
 
 all: $(TARGET)
 
@@ -30,6 +30,9 @@ $(BUILD_DIR)/tokenizer.o: $(SRC_DIR)/tokenizer.cpp $(INC_DIR)/tokenizer.hpp | $(
 
 $(BUILD_DIR)/embedding.o: $(SRC_DIR)/embedding.cpp $(INC_DIR)/embedding.hpp | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/embedding.cpp -o $(BUILD_DIR)/embedding.o
+
+$(BUILD_DIR)/layernorm.o: $(SRC_DIR)/layernorm.cpp $(INC_DIR)/layernorm.hpp | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) -c $(SRC_DIR)/layernorm.cpp -o $(BUILD_DIR)/layernorm.o
 
 run: $(TARGET)
 	./$(TARGET)
