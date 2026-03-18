@@ -3,6 +3,7 @@
 /venv
 /.vscode
 
+main
 test_tokenizer
 
 tokenizer.bin

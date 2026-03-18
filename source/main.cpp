@@ -1,7 +1,9 @@
 #include "tokenizer.hpp"
+#include "embedding.hpp"
 
 #include <iostream>
 #include <string>
+#include <vector>
 
 static void test(const TokenizerData& tokenizer, const std::string& text) {
     std::cout << "Input : \"" << text << "\"\n";
@@ -17,12 +19,36 @@ static void test(const TokenizerData& tokenizer, const std::string& text) {
     std::cout << "\n\n";
 }
 
-int main(int argc, char* argv[]) {
-    const char* path = (argc > 1) ? argv[1] : "tokenizer.bin";
+static void test_embedding(const EmbeddingLayer& emb, uint32_t token_id, uint32_t position) {
+    uint32_t hidden_size = emb.getHiddenSize();
+    std::vector<float> output(hidden_size);
 
+    std::cout << "Embedding forward(token=" << token_id << ", pos=" << position << "): ";
+    if (!emb.forward(token_id, position, output.data())) {
+        std::cout << "ECHEC\n";
+        return;
+    }
+
+    // Afficher les 8 premières valeurs du vecteur de sortie
+    uint32_t preview = (hidden_size < 8) ? hidden_size : 8;
+    std::cout << "[";
+    for (uint32_t i = 0; i < preview; ++i) {
+        if (i > 0) std::cout << ", ";
+        std::cout << output[i];
+    }
+    if (hidden_size > preview) std::cout << ", ...";
+    std::cout << "] (dim=" << hidden_size << ")\n";
+}
+
+int main(int argc, char* argv[]) {
+    const char* tok_path = (argc > 1) ? argv[1] : "tokenizer.bin";
+    const char* emb_path = (argc > 2) ? argv[2] : "embeddings.bin";
+
+    // --- Test Tokenizer ---
+    std::cout << "=== TEST TOKENIZER ===\n\n";
     TokenizerData tokenizer;
-    if (!tokenizer.load(path)) {
-        std::cerr << "Erreur: impossible de charger " << path << "\n";
+    if (!tokenizer.load(tok_path)) {
+        std::cerr << "Erreur: impossible de charger " << tok_path << "\n";
         return 1;
     }
 
@@ -33,6 +59,30 @@ int main(int argc, char* argv[]) {
     test(tokenizer, "The quick brown fox");
     test(tokenizer, "Je suis un tokenizer.");
     test(tokenizer, "The capital of France is");
+
+    // --- Test Embedding ---
+    std::cout << "=== TEST EMBEDDING ===\n\n";
+    EmbeddingLayer emb;
+    if (!emb.load(emb_path)) {
+        std::cerr << "Erreur: impossible de charger " << emb_path << "\n";
+        return 1;
+    }
+
+    std::cout << "hidden_size = " << emb.getHiddenSize() << "\n\n";
+
+    // Tokeniser une phrase et passer chaque token dans l'embedding
+    const std::string sentence = "Hello, world!";
+    std::vector<uint32_t> ids = tokenizer.tokenize(sentence);
+    std::cout << "Embeddings pour \"" << sentence << "\":\n";
+    for (uint32_t pos = 0; pos < static_cast<uint32_t>(ids.size()); ++pos) {
+        test_embedding(emb, ids[pos], pos);
+    }
+    std::cout << "\n";
+
+    // Quelques tests individuels
+    test_embedding(emb, 0, 0);
+    test_embedding(emb, 1, 1);
+    test_embedding(emb, 50256, 0); // OOV / token limite
 
     return 0;
 }
